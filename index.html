@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TC Radio Remote</title>
+    <!-- QR Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        /* Theme Variables - Default Midnight Theme */
+        :root {
+            --primary: #00d2ff;
+            --secondary: #302b63;
+            --accent: #9d50bb;
+            --text: #ffffff;
+            --background: #0f0c29;
+            --card: rgba(255,255,255,0.05);
+            --button: rgba(0,210,255,0.2);
+            --button-hover: rgba(0,210,255,0.3);
+            --gradient-start: #0f0c29;
+            --gradient-end: #24243e;
+            --danger: #ff5050;
+            --success: #00ff00;
+            --warning: #ffcc00;
+        }
+        
+        body { 
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); 
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            transition: all 0.3s ease;
+        }
+        
+        /* Connection Screen Styles */
+        .connection-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .connection-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            color: var(--primary);
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .connection-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,210,255,0.3);
+        }
+        
+        .connection-subtitle {
+            font-size: 16px;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 30px;
+            max-width: 300px;
+            line-height: 1.4;
+        }
+        
+        .connection-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .connection-btn {
+            background: var(--button);
+            border: 2px solid var(--primary);
+            color: var(--text);
+            padding: 18px;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .connection-btn:hover {
+            background: var(--button-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        
+        .connection-btn-icon {
+            font-size: 24px;
+        }
+        
+        .qr-scanner-container {
+            width: 100%;
+            max-width: 300px;
+            margin: 20px auto;
+            border-radius: 15px;
+            overflow: hidden;
+            border: 3px solid var(--primary);
+            display: none;
+        }
+        
+        #qr-reader {
+            width: 100% !important;
+        }
+        
+        #qr-reader__dashboard {
+            background: rgba(0,0,0,0.8) !important;
+            padding: 15px !important;
+        }
+        
+        #qr-reader__dashboard_section_csr button {
+            background: var(--primary) !important;
+            color: #000 !important;
+            border: none !important;
+            padding: 10px 20px !important;
+            border-radius: 8px !important;
+            font-weight: bold !important;
+        }
+        
+        .manual-input {
+            display: none;
+            width: 100%;
+            max-width: 300px;
+            margin-top: 20px;
+        }
+        
+        .url-input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid var(--primary);
+            background: rgba(0,0,0,0.5);
+            color: var(--text);
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        
+        .url-input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+        
+        .saved-connections {
+            width: 100%;
+            max-width: 300px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .saved-title {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 10px;
+            text-align: left;
+        }
+        
+        .saved-connection {
+            background: var(--card);
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid transparent;
+        }
+        
+        .saved-connection:hover {
+            background: var(--button-hover);
+            border-color: var(--primary);
+        }
+        
+        .saved-icon {
+            font-size: 20px;
+        }
+        
+        .saved-name {
+            flex: 1;
+            font-weight: 600;
+        }
+        
+        .saved-url {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+        }
+        
+        .back-btn {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 14px;
+            margin-top: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.8;
+            padding: 10px;
+        }
+        
+        .back-btn:hover {
+            opacity: 1;
+        }
+        
+        /* Main App Styles */
+        .app-container {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .app-header {
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            text-align: center;
+            border-bottom: 2px solid var(--primary);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            backdrop-filter: blur(10px);
+        }
+        
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .app-title {
+            color: var(--primary);
+            font-size: 22px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .connection-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .connection-status {
+            font-size: 12px;
+            background: rgba(0,255,0,0.2);
+            color: var(--success);
+            padding: 4px 10px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .disconnect-btn {
+            background: rgba(255,50,50,0.2);
+            border: 1px solid rgba(255,50,50,0.5);
+            color: var(--danger);
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .disconnect-btn:hover {
+            background: rgba(255,50,50,0.3);
+        }
+        
+        .theme-selector-btn {
+            background: var(--button);
+            border: 1px solid var(--primary);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .theme-selector-btn:hover {
+            background: var(--button-hover);
+            transform: translateY(-1px);
+        }
+        
+        .theme-dropdown {
+            position: absolute;
+            top: 60px;
+            right: 15px;
+            background: rgba(0,0,0,0.9);
+            border: 1px solid var(--primary);
+            border-radius: 10px;
+            padding: 10px;
+            z-index: 1000;
+            display: none;
+            min-width: 150px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .theme-option {
+            padding: 10px;
+            margin: 2px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+        }
+        
+        .theme-option:hover {
+            background: var(--button);
+        }
+        
+        .theme-option.active {
+            background: var(--primary);
+            color: #000;
+            font-weight: bold;
+        }
+        
+        .theme-preview {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .tabs-container {
+            display: flex;
+            background: rgba(0,0,0,0.8);
+            border-bottom: 1px solid var(--primary);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        
+        .tab-button {
+            flex: 1;
+            padding: 15px;
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.7);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .tab-button.active {
+            color: var(--primary);
+        }
+        
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 3px 3px 0 0;
+        }
+        
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* CONTROLLER TAB - UPDATED LAYOUT */
+        .now-playing-card {
+            background: var(--card);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .now-playing-title {
+            font-size: 12px;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .now-playing-text {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* UPDATED: Playback Controls Grid */
+        .playback-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .playback-btn {
+            background: var(--button);
+            border: 1px solid var(--primary);
+            color: var(--text);
+            padding: 20px 10px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .playback-btn:hover, .playback-btn:active {
+            background: var(--button-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+        
+        .playback-btn-icon {
+            font-size: 24px;
+        }
+        
+        /* UPDATED: Volume Controls with Mute in Middle */
+        .volume-section {
+            background: var(--card);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .volume-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .volume-title {
+            font-size: 14px;
+            color: var(--primary);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .volume-percent {
+            font-size: 14px;
+            color: var(--primary);
+            font-weight: bold;
+            background: rgba(0,210,255,0.1);
+            padding: 4px 10px;
+            border-radius: 10px;
+        }
+        
+        .volume-bar-container {
+            background: rgba(255,255,255,0.1);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .volume-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        /* UPDATED: Volume buttons with Mute in middle */
+        .volume-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .volume-btn {
+            background: var(--button);
+            border: 1px solid var(--primary);
+            color: var(--text);
+            padding: 15px 5px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .volume-btn:hover, .volume-btn:active {
+            background: var(--button-hover);
+            transform: translateY(-1px);
+        }
+        
+        .volume-btn-icon {
+            font-size: 20px;
+        }
+        
+        .mute-btn {
+            background: var(--button);
+            border: 1px solid var(--primary);
+            color: var(--text);
+            padding: 15px 5px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .mute-btn:hover, .mute-btn:active {
+            background: var(--button-hover);
+            transform: translateY(-1px);
+        }
+        
+        .mute-btn.muted {
+            background: rgba(255,50,50,0.3);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        
+        .mute-btn-icon {
+            font-size: 20px;
+        }
+        
+        /* Additional Controls */
+        .additional-controls {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .action-btn {
+            background: var(--button);
+            border: 1px solid var(--primary);
+            color: var(--text);
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .action-btn:hover, .action-btn:active {
+            background: var(--button-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+        
+        .action-btn-icon {
+            font-size: 24px;
+        }
+        
+        /* RADIOS TAB */
+        .stations-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .stations-title {
+            color: var(--primary);
+            font-size: 18px;
+        }
+        
+        .stations-count {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+            background: var(--button);
+            padding: 5px 10px;
+            border-radius: 10px;
+        }
+        
+        .station-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .station-item {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 1px solid transparent;
+            backdrop-filter: blur(5px);
+        }
+        
+        .station-item:hover, .station-item:active {
+            background: var(--button-hover);
+            transform: translateX(5px);
+            border-color: var(--primary);
+        }
+        
+        .station-item.current {
+            background: rgba(0,210,255,0.15);
+            border-color: var(--primary);
+        }
+        
+        .station-logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary);
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .station-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .station-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text);
+        }
+        
+        .station-item.current .station-name {
+            color: var(--primary);
+        }
+        
+        .station-genre {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .current-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--primary);
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px var(--primary);
+            flex-shrink: 0;
+        }
+        
+        /* THEMES TAB */
+        .themes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+        
+        .theme-card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            border: 2px solid transparent;
+            backdrop-filter: blur(5px);
+        }
+        
+        .theme-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+        
+        .theme-card.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 20px var(--primary);
+        }
+        
+        .theme-preview-large {
+            width: 100%;
+            height: 60px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .theme-name {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .app-footer {
+            padding: 10px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3);
+        }
+        
+        /* Scrollbar styling */
+        .tab-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .tab-content::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+            border-radius: 3px;
+        }
+        
+        .tab-content::-webkit-scrollbar-thumb {
+            background: var(--button-hover);
+            border-radius: 3px;
+        }
+        
+        .tab-content::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; transform: scale(0.95); }
+            50% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 0.7; transform: scale(0.95); }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 400px) {
+            .playback-btn, .volume-btn, .mute-btn { 
+                padding: 12px 5px; 
+                font-size: 12px; 
+            }
+            .playback-btn-icon, .volume-btn-icon, .mute-btn-icon { 
+                font-size: 18px; 
+            }
+            .station-logo { 
+                width: 45px; 
+                height: 45px; 
+                margin-right: 12px; 
+            }
+            .station-name { 
+                font-size: 15px; 
+            }
+            .themes-grid { 
+                grid-template-columns: repeat(2, 1fr); 
+            }
+        }
+        
+        @media (max-height: 600px) {
+            .app-header { 
+                padding: 12px; 
+            }
+            .tab-button { 
+                padding: 12px; 
+                font-size: 15px; 
+            }
+            .tab-content { 
+                padding: 12px; 
+            }
+            .playback-btn, .volume-btn, .mute-btn { 
+                padding: 12px 5px; 
+            }
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Connection Screen (shown first) -->
+    <div class="connection-screen">
+        <div class="connection-icon">📻</div>
+        <div class="connection-title">TC Radio Remote</div>
+        <div class="connection-subtitle">
+            Connect to your Raspberry Pi radio by scanning the QR code on the Pi screen
+        </div>
+        
+        <div class="connection-options">
+            <button class="connection-btn" onclick="showScanner()">
+                <span class="connection-btn-icon">📷</span>
+                Scan QR Code
+            </button>
+            
+            <button class="connection-btn" onclick="showManualInput()">
+                <span class="connection-btn-icon">🔗</span>
+                Enter URL Manually
+            </button>
+            
+            <button class="connection-btn" onclick="showSavedConnections()">
+                <span class="connection-btn-icon">💾</span>
+                Saved Connections
+            </button>
+        </div>
+        
+        <!-- QR Scanner -->
+        <div id="qr-scanner-container" class="qr-scanner-container">
+            <div id="qr-reader"></div>
+            <button class="back-btn" onclick="goBack()">← Back</button>
+        </div>
+        
+        <!-- Manual Input -->
+        <div id="manual-input" class="manual-input">
+            <input type="text" id="radio-url" class="url-input" 
+                   placeholder="http://192.168.1.100:5000">
+            <button class="connection-btn" onclick="connectManually()">Connect</button>
+            <button class="back-btn" onclick="goBack()">← Back</button>
+        </div>
+        
+        <!-- Saved Connections -->
+        <div id="saved-connections" class="saved-connections">
+            <div class="saved-title">Saved Radios:</div>
+            <div id="saved-connections-list"></div>
+            <button class="back-btn" onclick="goBack()">← Back</button>
+        </div>
+        
+        <!-- Loading Spinner -->
+        <div class="spinner" id="loading-spinner"></div>
+    </div>
+    
+    <!-- Main App (shown after connection) -->
+    <div class="app-container">
+        <div class="app-header">
+            <div class="header-top">
+                <div class="app-title">🎵 TC RADIO REMOTE</div>
+                <div class="connection-info">
+                    <div class="connection-status">● Connected</div>
+                    <button class="disconnect-btn" onclick="disconnect()">Disconnect</button>
+                    <div class="theme-selector">
+                        <button class="theme-selector-btn" onclick="toggleThemeDropdown()">
+                            🎨 <span id="current-theme-name">Midnight</span>
+                        </button>
+                        <div id="theme-dropdown" class="theme-dropdown"></div>
+                    </div>
+                </div>
+            </div>
+            <div style="font-size: 12px; color: rgba(255,255,255,0.7);" id="connection-url">
+                Connected to: <span id="connected-url">Not connected</span>
+            </div>
+        </div>
+        
+        <div class="tabs-container">
+            <button class="tab-button active" onclick="switchTab('controller')">🎮 Controller</button>
+            <button class="tab-button" onclick="switchTab('radios')">📻 Radios</button>
+            <button class="tab-button" onclick="switchTab('themes')">🎨 Themes</button>
+        </div>
+        
+        <!-- CONTROLLER TAB - UPDATED LAYOUT -->
+        <div id="controller-tab" class="tab-content active">
+            <div class="now-playing-card">
+                <div class="now-playing-title">Now Playing</div>
+                <div class="now-playing-text" id="now-playing-text">Not connected</div>
+            </div>
+            
+            <!-- Playback Controls -->
+            <div class="playback-controls">
+                <button class="playback-btn" onclick="cmd('prev')">
+                    <span class="playback-btn-icon">⏮</span>
+                    <span>Previous</span>
+                </button>
+                
+                <button class="playback-btn" onclick="cmd('toggle')" id="play-pause-btn">
+                    <span class="playback-btn-icon">⏯</span>
+                    <span>Play / Pause</span>
+                </button>
+                
+                <button class="playback-btn" onclick="cmd('next')">
+                    <span class="playback-btn-icon">⏭</span>
+                    <span>Next</span>
+                </button>
+            </div>
+            
+            <!-- UPDATED: Volume Controls with Mute in Middle -->
+            <div class="volume-section">
+                <div class="volume-header">
+                    <div class="volume-title">
+                        <span>🔊</span>
+                        <span>Volume Control</span>
+                    </div>
+                    <div class="volume-percent" id="volume-percent">50%</div>
+                </div>
+                
+                <div class="volume-bar-container">
+                    <div class="volume-bar" id="volume-bar" style="width: 50%;"></div>
+                </div>
+                
+                <div class="volume-controls">
+                    <button class="volume-btn" onclick="cmd('voldown')">
+                        <span class="volume-btn-icon">🔉</span>
+                        <span>Volume Down</span>
+                    </button>
+                    
+                    <button class="mute-btn" onclick="cmd('mute')" id="mute-btn">
+                        <span class="mute-btn-icon">🔇</span>
+                        <span>Mute</span>
+                    </button>
+                    
+                    <button class="volume-btn" onclick="cmd('volup')">
+                        <span class="volume-btn-icon">🔊</span>
+                        <span>Volume Up</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Additional Controls -->
+            <div class="additional-controls">
+                <button class="action-btn" onclick="cmd('sleep')">
+                    <span class="action-btn-icon">🌙</span>
+                    <span>Sleep Mode</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- RADIOS TAB -->
+        <div id="radios-tab" class="tab-content">
+            <div class="stations-header">
+                <h3 class="stations-title">Available Stations</h3>
+                <div class="stations-count" id="stations-count">0 stations</div>
+            </div>
+            
+            <div class="station-list" id="station-list">
+                <!-- Stations will be loaded here -->
+                <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">
+                    Loading stations...
+                </div>
+            </div>
+        </div>
+        
+        <!-- THEMES TAB -->
+        <div id="themes-tab" class="tab-content">
+            <h3 style="color: var(--primary); margin-bottom: 20px; text-align: center;">Choose Your Theme</h3>
+            
+            <div class="themes-grid" id="themes-grid">
+                <!-- Themes will be loaded here -->
+            </div>
+            
+            <div style="text-align: center; margin-top: 25px; color: rgba(255,255,255,0.7); font-size: 13px;">
+                Theme changes apply immediately
+            </div>
+        </div>
+        
+        <div class="app-footer">
+            TC Radio Remote • <span id="current-theme-footer">Midnight</span> Theme • Updated: <span id="update-time">--:--</span>
+        </div>
+    </div>
+
+    <script>
+        // ========== STATE MANAGEMENT ==========
+        let currentVolume = 50;
+        let currentStationIdx = 0;
+        let showThemeDropdown = false;
+        let currentConnection = null;
+        let isConnected = false;
+        let isMuted = false;
+        let stations = [];
+        let updateInterval = null;
+        let qrScanner = null;
+        
+        // Available themes
+        const THEMES = {
+            'midnight': {
+                name: 'Midnight',
+                primary: '#00d2ff',
+                secondary: '#302b63',
+                accent: '#9d50bb',
+                text: '#ffffff',
+                background: '#0f0c29',
+                gradientStart: '#0f0c29',
+                gradientEnd: '#24243e'
+            },
+            'sunset': {
+                name: 'Sunset',
+                primary: '#ff7e5f',
+                secondary: '#feb47b',
+                accent: '#ffcc00',
+                text: '#ffffff',
+                background: '#2b1331',
+                gradientStart: '#2b1331',
+                gradientEnd: '#4a1665'
+            },
+            'ocean': {
+                name: 'Ocean',
+                primary: '#64ffda',
+                secondary: '#112240',
+                accent: '#57cbff',
+                text: '#ccd6f6',
+                background: '#0a192f',
+                gradientStart: '#0a192f',
+                gradientEnd: '#112240'
+            },
+            'forest': {
+                name: 'Forest',
+                primary: '#7bc950',
+                secondary: '#2d5a27',
+                accent: '#ff9a3c',
+                text: '#e8f4ea',
+                background: '#0d1b1e',
+                gradientStart: '#0d1b1e',
+                gradientEnd: '#1a3027'
+            },
+            'cyberpunk': {
+                name: 'Cyberpunk',
+                primary: '#ff00ff',
+                secondary: '#00ffff',
+                accent: '#ff6b00',
+                text: '#ffffff',
+                background: '#0d0221',
+                gradientStart: '#0d0221',
+                gradientEnd: '#2d00aa'
+            },
+            'retro': {
+                name: 'Retro',
+                primary: '#ff0055',
+                secondary: '#00ffaa',
+                accent: '#ffcc00',
+                text: '#ffffff',
+                background: '#2d1b69',
+                gradientStart: '#2d1b69',
+                gradientEnd: '#6a11cb'
+            },
+            'monochrome': {
+                name: 'Monochrome',
+                primary: '#ffffff',
+                secondary: '#666666',
+                accent: '#cccccc',
+                text: '#ffffff',
+                background: '#1a1a1a',
+                gradientStart: '#1a1a1a',
+                gradientEnd: '#333333'
+            },
+            'nord': {
+                name: 'Nord',
+                primary: '#88c0d0',
+                secondary: '#4c566a',
+                accent: '#bf616a',
+                text: '#d8dee9',
+                background: '#2e3440',
+                gradientStart: '#2e3440',
+                gradientEnd: '#3b4252'
+            },
+            'dracula': {
+                name: 'Dracula',
+                primary: '#bd93f9',
+                secondary: '#44475a',
+                accent: '#ff79c6',
+                text: '#f8f8f2',
+                background: '#282a36',
+                gradientStart: '#282a36',
+                gradientEnd: '#44475a'
+            },
+            'solarized': {
+                name: 'Solarized',
+                primary: '#268bd2',
+                secondary: '#073642',
+                accent: '#d33682',
+                text: '#839496',
+                background: '#002b36',
+                gradientStart: '#002b36',
+                gradientEnd: '#073642'
+            }
+        };
+        
+        let currentTheme = 'midnight';
+        
+        // ========== INITIALIZATION ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load saved theme
+            const savedTheme = localStorage.getItem('tc_radio_theme');
+            if (savedTheme && THEMES[savedTheme]) {
+                currentTheme = savedTheme;
+            }
+            applyTheme(currentTheme);
+            
+            // Load saved connections and check for auto-connect
+            checkSavedConnection();
+            
+            // Initialize themes tab
+            populateThemes();
+            
+            // If not auto-connected, show connection screen
+            if (!isConnected) {
+                document.querySelector('.connection-screen').style.display = 'flex';
+                document.querySelector('.app-container').style.display = 'none';
+            }
+            
+            // Update time in footer
+            updateTime();
+            setInterval(updateTime, 60000);
+        });
+        
+        // ========== CONNECTION FUNCTIONS ==========
+        function checkSavedConnection() {
+            const savedConnections = JSON.parse(localStorage.getItem('tc_radio_connections') || '{}');
+            const lastUsed = localStorage.getItem('tc_radio_last_connection');
+            
+            if (lastUsed && savedConnections[lastUsed]) {
+                // Try to auto-connect to last used connection
+                connectToRadio(savedConnections[lastUsed].url, lastUsed, true);
+            }
+        }
+        
+        function showScanner() {
+            hideAllConnectionPanels();
+            document.getElementById('qr-scanner-container').style.display = 'block';
+            
+            if (qrScanner) {
+                qrScanner.stop();
+            }
+            
+            // Initialize QR scanner
+            qrScanner = new Html5Qrcode("qr-reader");
+            
+            const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                showLoading(true);
+                qrScanner.stop().then(() => {
+                    connectToRadio(decodedText, "QR Code Radio", false);
+                }).catch((err) => {
+                    console.error("Failed to stop scanner:", err);
+                    showLoading(false);
+                });
+            };
+            
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            // Start scanning
+            qrScanner.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+                .catch(err => {
+                    console.error("Failed to start scanner:", err);
+                    alert("Failed to access camera. Please check permissions.");
+                    showLoading(false);
+                });
+        }
+        
+        function showManualInput() {
+            hideAllConnectionPanels();
+            document.getElementById('manual-input').style.display = 'block';
+            if (qrScanner) qrScanner.stop();
+        }
+        
+        function showSavedConnections() {
+            hideAllConnectionPanels();
+            document.getElementById('saved-connections').style.display = 'block';
+            if (qrScanner) qrScanner.stop();
+            
+            // Load and display saved connections
+            const savedConnections = JSON.parse(localStorage.getItem('tc_radio_connections') || '{}');
+            const container = document.getElementById('saved-connections-list');
+            container.innerHTML = '';
+            
+            if (Object.keys(savedConnections).length === 0) {
+                container.innerHTML = '<div style="color: rgba(255,255,255,0.5); text-align: center; padding: 20px;">No saved connections</div>';
+            } else {
+                for (const [name, conn] of Object.entries(savedConnections)) {
+                    const div = document.createElement('div');
+                    div.className = 'saved-connection';
+                    div.innerHTML = `
+                        <div class="saved-icon">📻</div>
+                        <div style="flex: 1;">
+                            <div class="saved-name">${name}</div>
+                            <div class="saved-url">${conn.url}</div>
+                        </div>
+                    `;
+                    div.onclick = () => connectToRadio(conn.url, name, false);
+                    container.appendChild(div);
+                }
+            }
+        }
+        
+        function hideAllConnectionPanels() {
+            document.getElementById('qr-scanner-container').style.display = 'none';
+            document.getElementById('manual-input').style.display = 'none';
+            document.getElementById('saved-connections').style.display = 'none';
+        }
+        
+        function connectManually() {
+            const url = document.getElementById('radio-url').value.trim();
+            if (url) {
+                const name = prompt("Give this radio a name:", "My Radio") || "My Radio";
+                connectToRadio(url, name, false);
+            } else {
+                alert("Please enter a URL");
+            }
+        }
+        
+        function connectToRadio(url, name, silent = false) {
+            if (!silent) showLoading(true);
+            
+            // Validate URL
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'http://' + url;
+            }
+            
+            // Test connection
+            fetch(`${url}/api/nowplaying`)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('Connection failed');
+                    }
+                })
+                .then(data => {
+                    // Connection successful
+                    currentConnection = { url, name };
+                    isConnected = true;
+                    
+                    // Save connection
+                    saveConnection(name, url);
+                    
+                    // Switch to main app view
+                    document.querySelector('.connection-screen').style.display = 'none';
+                    document.querySelector('.app-container').style.display = 'flex';
+                    
+                    // Set API base URL
+                    window.API_BASE = url;
+                    
+                    // Update UI
+                    document.getElementById('connected-url').textContent = url;
+                    document.getElementById('now-playing-text').textContent = data.text || 'Unknown';
+                    
+                    // Load initial data
+                    updateVolumeDisplay();
+                    loadStations();
+                    
+                    // Start periodic updates
+                    startUpdates();
+                    
+                    showLoading(false);
+                })
+                .catch(error => {
+                    showLoading(false);
+                    if (!silent) {
+                        alert(`Failed to connect to ${url}. Please check the URL and make sure the radio is running.`);
+                    }
+                    console.error('Connection error:', error);
+                });
+        }
+        
+        function saveConnection(name, url) {
+            const savedConnections = JSON.parse(localStorage.getItem('tc_radio_connections') || '{}');
+            savedConnections[name] = { url, lastConnected: new Date().toISOString() };
+            localStorage.setItem('tc_radio_connections', JSON.stringify(savedConnections));
+            localStorage.setItem('tc_radio_last_connection', name);
+        }
+        
+        function disconnect() {
+            if (confirm("Disconnect from this radio?")) {
+                isConnected = false;
+                currentConnection = null;
+                document.querySelector('.connection-screen').style.display = 'flex';
+                document.querySelector('.app-container').style.display = 'none';
+                stopUpdates();
+                if (qrScanner) qrScanner.stop();
+            }
+        }
+        
+        function goBack() {
+            hideAllConnectionPanels();
+            showLoading(false);
+            if (qrScanner) qrScanner.stop();
+        }
+        
+        function showLoading(show) {
+            const spinner = document.getElementById('loading-spinner');
+            if (show) {
+                spinner.style.display = 'block';
+            } else {
+                spinner.style.display = 'none';
+            }
+        }
+        
+        // ========== APP FUNCTIONS ==========
+        function switchTab(tabName) {
+            if (!isConnected) return;
+            
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab and activate button
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.currentTarget.classList.add('active');
+            
+            // Close theme dropdown if open
+            showThemeDropdown = false;
+            document.getElementById('theme-dropdown').style.display = 'none';
+        }
+        
+        function toggleThemeDropdown() {
+            if (!isConnected) return;
+            showThemeDropdown = !showThemeDropdown;
+            document.getElementById('theme-dropdown').style.display = 
+                showThemeDropdown ? 'block' : 'none';
+            event.stopPropagation();
+        }
+        
+        function populateThemes() {
+            const themesGrid = document.getElementById('themes-grid');
+            const themeDropdown = document.getElementById('theme-dropdown');
+            
+            themesGrid.innerHTML = '';
+            themeDropdown.innerHTML = '';
+            
+            for (const [themeKey, theme] of Object.entries(THEMES)) {
+                // Theme cards for themes tab
+                const themeCard = document.createElement('div');
+                themeCard.className = `theme-card ${themeKey === currentTheme ? 'active' : ''}`;
+                themeCard.innerHTML = `
+                    <div class="theme-preview-large" style="--gradient-start: ${theme.gradientStart}; --gradient-end: ${theme.gradientEnd};"></div>
+                    <div class="theme-name">${theme.name}</div>
+                    <div class="theme-colors">
+                        <div style="display: flex; gap: 4px; justify-content: center; margin-top: 5px;">
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background: ${theme.primary};"></div>
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background: ${theme.secondary};"></div>
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background: ${theme.accent};"></div>
+                        </div>
+                    </div>
+                `;
+                themeCard.onclick = () => selectTheme(themeKey);
+                themesGrid.appendChild(themeCard);
+                
+                // Theme options for dropdown
+                const themeOption = document.createElement('div');
+                themeOption.className = `theme-option ${themeKey === currentTheme ? 'active' : ''}`;
+                themeOption.innerHTML = `
+                    <div class="theme-preview" style="background: ${theme.primary};"></div>
+                    ${theme.name}
+                `;
+                themeOption.onclick = () => selectTheme(themeKey);
+                themeDropdown.appendChild(themeOption);
+            }
+        }
+        
+        function selectTheme(themeName) {
+            if (!THEMES[themeName]) return;
+            
+            currentTheme = themeName;
+            localStorage.setItem('tc_radio_theme', themeName);
+            
+            applyTheme(themeName);
+            
+            // Update UI
+            document.getElementById('current-theme-name').textContent = THEMES[themeName].name;
+            document.getElementById('current-theme-footer').textContent = THEMES[themeName].name;
+            
+            // Refresh theme cards
+            populateThemes();
+            
+            // Close dropdown
+            showThemeDropdown = false;
+            document.getElementById('theme-dropdown').style.display = 'none';
+        }
+        
+        function applyTheme(themeName) {
+            const theme = THEMES[themeName];
+            if (!theme) return;
+            
+            const root = document.documentElement;
+            root.style.setProperty('--primary', theme.primary);
+            root.style.setProperty('--secondary', theme.secondary);
+            root.style.setProperty('--accent', theme.accent);
+            root.style.setProperty('--text', theme.text);
+            root.style.setProperty('--background', theme.background);
+            root.style.setProperty('--gradient-start', theme.gradientStart);
+            root.style.setProperty('--gradient-end', theme.gradientEnd);
+            
+            // Update meta theme-color for PWA
+            const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+            if (metaThemeColor) {
+                metaThemeColor.setAttribute('content', theme.primary);
+            }
+        }
+        
+        function cmd(action) { 
+            if (!isConnected) return;
+            
+            fetch(`${window.API_BASE}/api/${action}`)
+                .then(() => {
+                    if (action === 'volup' || action === 'voldown') {
+                        updateVolumeDisplay();
+                    }
+                    if (action === 'mute') {
+                        isMuted = !isMuted;
+                        updateMuteButton();
+                    }
+                    if (action === 'prev' || action === 'next' || action === 'toggle') {
+                        setTimeout(updateNowPlaying, 500);
+                        setTimeout(updateCurrentStation, 500);
+                    }
+                })
+                .catch(err => {
+                    console.error('Command error:', err);
+                    if (err.message.includes('Failed to fetch')) {
+                        alert('Connection lost. Please reconnect.');
+                        disconnect();
+                    }
+                }); 
+        }
+        
+        function playStation(idx) { 
+            if (!isConnected) return;
+            
+            fetch(`${window.API_BASE}/api/play/${idx}`)
+                .then(() => {
+                    currentStationIdx = idx;
+                    updateCurrentStation();
+                    setTimeout(updateNowPlaying, 500);
+                    switchTab('controller');
+                })
+                .catch(err => console.error('Play error:', err)); 
+        }
+        
+        function updateVolumeDisplay() {
+            if (!isConnected) return;
+            
+            fetch(`${window.API_BASE}/api/volume`)
+                .then(r => r.json())
+                .then(data => {
+                    currentVolume = data.volume;
+                    document.getElementById('volume-bar').style.width = currentVolume + '%';
+                    document.getElementById('volume-percent').textContent = currentVolume + '%';
+                    
+                    // Update mute state based on volume
+                    isMuted = currentVolume === 0;
+                    updateMuteButton();
+                })
+                .catch(err => console.error('Volume error:', err));
+        }
+        
+        function updateMuteButton() {
+            const muteBtn = document.getElementById('mute-btn');
+            if (isMuted) {
+                muteBtn.classList.add('muted');
+                muteBtn.innerHTML = '<span class="mute-btn-icon">🔇</span><span>Unmute</span>';
+            } else {
+                muteBtn.classList.remove('muted');
+                muteBtn.innerHTML = '<span class="mute-btn-icon">🔇</span><span>Mute</span>';
+            }
+        }
+        
+        function updateCurrentStation() {
+            if (!isConnected) return;
+            
+            // Remove current class from all stations
+            document.querySelectorAll('.station-item').forEach(item => {
+                item.classList.remove('current');
+            });
+            
+            // Add current class to active station
+            const stationItems = document.querySelectorAll('.station-item');
+            if (stationItems[currentStationIdx]) {
+                stationItems[currentStationIdx].classList.add('current');
+            }
+        }
+        
+        function updateNowPlaying() {
+            if (!isConnected) return;
+            
+            fetch(`${window.API_BASE}/api/nowplaying`)
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('now-playing-text').textContent = data.text;
+                })
+                .catch(err => console.error('Now playing error:', err));
+        }
+        
+        function loadStations() {
+            if (!isConnected) return;
+            
+            fetch(`${window.API_BASE}/api/stations`)
+                .then(r => r.json())
+                .then(data => {
+                    stations = data;
+                    renderStations();
+                })
+                .catch(err => {
+                    console.error('Stations error:', err);
+                    // Fallback to empty stations list
+                    stations = [];
+                    renderStations();
+                });
+        }
+        
+        function renderStations() {
+            const stationList = document.getElementById('station-list');
+            const stationsCount = document.getElementById('stations-count');
+            
+            stationsCount.textContent = `${stations.length} stations`;
+            
+            if (stations.length === 0) {
+                stationList.innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">No stations available</div>';
+                return;
+            }
+            
+            stationList.innerHTML = '';
+            
+            stations.forEach((station, index) => {
+                const stationItem = document.createElement('div');
+                stationItem.className = `station-item ${index === currentStationIdx ? 'current' : ''}`;
+                stationItem.onclick = () => playStation(index);
+                
+                // Use station logo or fallback
+                const logoUrl = station.logo || station.logo_data_url || '';
+                const logoHtml = logoUrl ? 
+                    `<img src="${logoUrl}" alt="${station.name}" class="station-logo" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyNSIgY3k9IjI1IiByPSIyNSIgZmlsbD0iIzAwZDJmZiIvPjxjaXJjbGUgY3g9IjI1IiBjeT0iMjUiIHI9IjE1IiBmaWxsPSIjMGYwYzI5Ii8+PHBhdGggZD0iTTE4IDI4SDE5VjM0SDE4VjI4Wk0yMiAyOEgyM1YzNEgyMlYyOFpNMjYgMjhIMjdWMzRIMjZWMjhaTTMwIDI4SDMxVjM0SDMwVjI4WiIgZmlsbD0iIzAwZDJmZiIvPjwvc3ZnPg==';">` :
+                    `<div class="station-logo" style="background: var(--primary); display: flex; align-items: center; justify-content: center; color: var(--background); font-weight: bold; font-size: 18px;">${station.name.substring(0, 2).toUpperCase()}</div>`;
+                
+                stationItem.innerHTML = `
+                    ${logoHtml}
+                    <div class="station-info">
+                        <div class="station-name">${station.name}</div>
+                        ${station.genre ? `<div class="station-genre">${station.genre}</div>` : ''}
+                    </div>
+                    ${index === currentStationIdx ? '<div class="current-indicator"></div>' : ''}
+                `;
+                
+                stationList.appendChild(stationItem);
+            });
+        }
+        
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            document.getElementById('update-time').textContent = timeStr;
+        }
+        
+        // Update intervals
+        function startUpdates() {
+            stopUpdates(); // Clear any existing interval
+            
+            updateInterval = setInterval(() => {
+                if (isConnected) {
+                    updateNowPlaying();
+                    updateVolumeDisplay();
+                }
+            }, 5000);
+        }
+        
+        function stopUpdates() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+                updateInterval = null;
+            }
+        }
+        
+        // Close theme dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.theme-selector') && showThemeDropdown) {
+                showThemeDropdown = false;
+                document.getElementById('theme-dropdown').style.display = 'none';
+            }
+        });
+        
+        // Handle service worker for PWA
+        if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') { 
+            navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err)); 
+        }
+        
+        // Handle offline/online events
+        window.addEventListener('online', function() {
+            if (isConnected && currentConnection) {
+                // Try to reconnect
+                connectToRadio(currentConnection.url, currentConnection.name, true);
+            }
+        });
+        
+        window.addEventListener('offline', function() {
+            if (isConnected) {
+                alert('Lost internet connection. Please check your network.');
+            }
+        });
+    </script>
+</body>
+</html>
